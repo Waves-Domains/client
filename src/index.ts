@@ -1,10 +1,12 @@
 import libCrypto from '@waves/ts-lib-crypto';
 
-type Response = {
-  name: string;
-  job: string;
-  id: string;
-  createdAt: string;
+type EvaluateResponse = {
+  address: string;
+  expr: string;
+  result: {
+    type: string;
+    value: string;
+  };
 };
 
 const INVOKE_TX_TYPE = 16;
@@ -48,8 +50,7 @@ export class WavesNameService {
         return null;
       }
 
-      const result = (await response.json()) as Response;
-      return result;
+      return (await response.json()) as EvaluateResponse;
     } catch (err) {
       this.logger(err);
     }
@@ -57,17 +58,18 @@ export class WavesNameService {
     return null;
   }
 
-  async reverseLookup(address: string) {
-    return address;
-  }
-
   async makeBidTx(
     name: string,
     amount: BigInt | number | string,
-    auctionId: number,
+    auctionId: number
   ) {
     try {
-      const hash = libCrypto.blake2b(libCrypto.keccak(name + amount));
+      const { address } = libCrypto.crypto({ output: 'Bytes' });
+      const nameBytes = address(name);
+      const amountBytes = address(amount);
+      const hash = libCrypto.blake2b(
+        libCrypto.keccak(nameBytes(amountBytes + nameBytes))
+      );
 
       return {
         type: INVOKE_TX_TYPE,
@@ -95,6 +97,30 @@ export class WavesNameService {
       };
     } catch (error) {
       this.logger(error);
+    }
+
+    return null;
+  }
+
+  async reverseLookup(address: string) {
+    try {
+      const response = await fetch(
+        `${HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expr: `reverseLookup(${address})`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.log(err);
     }
 
     return null;

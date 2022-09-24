@@ -115,12 +115,14 @@ export class WavesNameService {
       );
 
       if (!response.ok) {
-        throw new Error(`Error! status: ${response.status}`);
+        this.logger(`${response.status}`);
+
+        return null;
       }
 
       return await response.json();
     } catch (err) {
-      console.log(err);
+      this.logger(err);
     }
 
     return null;

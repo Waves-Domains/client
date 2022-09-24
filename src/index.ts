@@ -1,10 +1,12 @@
 import fetch from 'node-fetch';
 
-type Response = {
-  name: string;
-  job: string;
-  id: string;
-  createdAt: string;
+type EvaluateResponse = {
+  address: string;
+  expr: string;
+  result: {
+    type: string;
+    value: string;
+  }
 };
 
 const CONTRACT_ADDRESS = '';
@@ -13,7 +15,7 @@ const HOST = 'https://nodes-keeper.wavesnodes.com/';
 export class WavesNameService {
   async lookup(name: string) {
     try {
-      const response = await fetch(`${HOST}/utils/script/evaluate/${CONTRACT_ADDRESS}`,
+      const response = await fetch(`${HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -25,18 +27,18 @@ export class WavesNameService {
         throw new Error(`Error! status: ${response.status}`);
       }
 
-      const result = (await response.json()) as Response;
-      return result;
+      return (await response.json()) as EvaluateResponse;
     } catch (err) {
       console.log(err);
     }
+
+    return null;
   }
 
   async reverseLookup(address: string) {
   }
 
   async createBidTx(name: string, amount: number, auctionId: number) {
-
   }
 }
 

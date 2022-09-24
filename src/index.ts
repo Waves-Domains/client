@@ -64,12 +64,13 @@ export class WavesNameService {
     auctionId: number
   ) {
     try {
-      const { address } = libCrypto.crypto({ output: 'Bytes' });
-      const nameBytes = address(name);
-      const amountBytes = address(amount);
+      const nameBytes = libCrypto.stringToBytes(name);
+      const amountBytes = libCrypto.stringToBytes(amount.toString());
       const hash = libCrypto.blake2b(
         libCrypto.keccak(nameBytes(amountBytes + nameBytes))
       );
+
+      const encoded58hash = libCrypto.base58Encode(hash); 
 
       return {
         type: INVOKE_TX_TYPE,
@@ -84,7 +85,7 @@ export class WavesNameService {
             },
             {
               type: 'string',
-              value: `${hash}`,
+              value: `${encoded58hash}`,
             },
           ],
         },

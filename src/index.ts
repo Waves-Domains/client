@@ -36,6 +36,25 @@ export class WavesNameService {
   }
 
   async reverseLookup(address: string) {
+    try {
+      const response = await fetch(`${HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            expr: `reverseLookup(${address})`
+          })
+        },);
+
+      if (!response.ok) {
+        throw new Error(`Error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.log(err);
+    }
+
+    return null;
   }
 
   async createBidTx(name: string, amount: number, auctionId: number) {

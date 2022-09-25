@@ -1,11 +1,19 @@
 # wns-js-library
 
-methods: 
+##methods: 
 
-## makeBidTx
+### makeBidTx
 
-## lookup
+Returns transaction object for a signer;
 
-## reverseLookup
+### lookup
 
-## getCurrentAuctionId
+Returns blockchain address for a ceratain domain;
+
+### reverseLookup
+
+Returns domain names for a ceratain blockchain address
+
+### getCurrentAuctionId
+
+Returns id of currently active auction;

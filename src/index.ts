@@ -21,7 +21,6 @@ const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com/';
 const AUCTION_DURANCE = 518400000;
 
 interface Config {
-  dApp: string;
   version?: number;
   type?: number;
   network: 'mainnet' | 'testnet' | 'stagenet';
@@ -142,7 +141,7 @@ export class WavesNameService {
       return {
         type: INVOKE_TX_TYPE,
         version: this.config.version,
-        dApp: this.config.dApp,
+        dApp: this.config.CONTRACT_ADDRESS,
         call: {
           function: INVOKE_FUNCTION_BID,
           args: [

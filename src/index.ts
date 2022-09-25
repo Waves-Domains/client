@@ -12,7 +12,7 @@ type EvaluateResponse = {
 const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
 const CONTRACT_ADDRESS = '';
-const HOST = 'https://nodes-keeper.wavesnodes.com/';
+const HOST = 'https://nodes.wavesnodes.com/';
 const AUCTION_DURANCE = 518400000;
 
 interface Config {

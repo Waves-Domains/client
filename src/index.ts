@@ -172,7 +172,7 @@ export class WavesNameService {
   public async reverseLookup(address: string) {
     try {
       const response = await fetch(
-        `${this.config.HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
+        `${this.config.HOST}utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
         {
           method: 'POST',
           body: JSON.stringify({

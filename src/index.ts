@@ -1,4 +1,5 @@
 import libCrypto from '@waves/ts-lib-crypto';
+import Long from 'long';
 
 type EvaluateResponse = {
   address: string;
@@ -12,23 +13,38 @@ type EvaluateResponse = {
 const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
 const CONTRACT_ADDRESS = '';
-const HOST = 'https://nodes-keeper.wavesnodes.com/';
+const PROD_HOST = 'https://nodes-keeper.wavesnodes.com/';
+const TEST_HOST = 'https://nodes-testnet.wavesnodes.com/';
+const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com/';
 const AUCTION_DURANCE = 518400000;
 
 interface Config {
   dApp: string;
   version?: number;
   type?: number;
+  network: 'mainnet' | 'testnet' | 'stagenet';  
+  HOST?: string;
+  AUCTION_DURANCE?: string;
+  CONTRACT_ADDRESS?: number;
 }
 
 export class WavesNameService {
   config: Config;
 
   constructor(config) {
+
+    const HOST_ENTRIES = {
+      'mainnet': PROD_HOST,
+      'testnet': TEST_HOST,
+      'stagenet': STAGE_HOST,
+    }
+
     this.config = {
       version: 2,
       type: 16,
-      auctionDurance: 518400000,
+      HOST: HOST_ENTRIES[config.network],
+      AUCTION_DURANCE,
+      CONTRACT_ADDRESS,
       ...config,
     };
   }
@@ -36,7 +52,7 @@ export class WavesNameService {
   async lookup(name: string) {
     try {
       const response = await fetch(
-        `${HOST}/utils/script/evaluate/${CONTRACT_ADDRESS}`,
+        `${this.config.HOST}/utils/script/evaluate/${CONTRACT_ADDRESS}`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -58,19 +74,21 @@ export class WavesNameService {
     return null;
   }
 
-  async makeBidTx(
-    name: string,
-    amount: BigInt | number | string,
-    auctionId: number
-  ) {
+  private convertNumber(n: Long) {
+    const maxJsNumber = 2 ** 53 - 1;
+
+    return n.toNumber() > maxJsNumber ? n.toString() : n.toNumber();
+  }
+
+  async makeBidTx(name: string, amount: Long, auctionId: number) {
     try {
       const nameBytes = libCrypto.stringToBytes(name);
-      const amountBytes = libCrypto.stringToBytes(amount.toString());
+      const amountBytes = libCrypto.stringToBytes(`${this.convertNumber(amount)}`);
       const hash = libCrypto.blake2b(
-        libCrypto.keccak(nameBytes(amountBytes + nameBytes))
+        libCrypto.keccak(libCrypto.concat(amountBytes, nameBytes))
       );
 
-      const encoded58hash = libCrypto.base58Encode(hash); 
+      const encoded58hash = libCrypto.base58Encode(hash);
 
       return {
         type: INVOKE_TX_TYPE,
@@ -106,7 +124,7 @@ export class WavesNameService {
   async reverseLookup(address: string) {
     try {
       const response = await fetch(
-        `${HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
+        `${this.config.HOST}utils/script/evaluate/${CONTRACT_ADDRESS}`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -132,7 +150,7 @@ export class WavesNameService {
   async getCurrentAuctionId() {
     try {
       const response = await fetch(
-        `${HOST}/addresses/data/${CONTRACT_ADDRESS}/init_timestamp`
+        `${this.config.HOST}/addresses/data/${this.config.CONTRACT_ADDRESS}/init_timestamp`
       );
       if (!response.ok) {
         this.logger(Error(`${response.status}`));

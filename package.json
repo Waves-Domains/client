@@ -12,6 +12,7 @@
         "typescript": "^4.8.3"
     },
     "dependencies": {
-        "@waves/ts-lib-crypto": "^1.4.4-beta.1"
+        "@waves/ts-lib-crypto": "^1.4.4-beta.1",
+        "long": "^5.2.0"
     }
 }

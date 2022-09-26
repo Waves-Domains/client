@@ -18,21 +18,27 @@ const CONTRACT_ADDRESS = '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH';
 const PROD_HOST = 'https://nodes-keeper.wavesnodes.com/';
 const TEST_HOST = 'https://nodes-testnet.wavesnodes.com/';
 const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com/';
-const AUCTION_DURANCE = 518400000;
+const AUCTION_DURATION = 518400000;
+const INIT_TIMESTAMP = 1664125224707;
+const REVEAL_DURATION = 180000;
+const BID_DURATION = 180000;
 
 interface Config {
   version?: number;
   type?: number;
-  network: 'mainnet' | 'testnet' | 'stagenet';
+  network?: 'mainnet' | 'testnet' | 'stagenet';
   HOST?: string;
-  AUCTION_DURANCE?: string;
-  CONTRACT_ADDRESS?: number;
+  AUCTION_DURATION: number;
+  CONTRACT_ADDRESS: string;
+  REVEAL_DURATION: number;
+  INIT_TIMESTAMP: number;
+  BID_DURATION: number;
 }
 
 export class WavesNameService {
   config: Config;
 
-  constructor(config) {
+  constructor(config: Partial<Config>) {
     const HOST_ENTRIES = {
       mainnet: PROD_HOST,
       testnet: TEST_HOST,
@@ -42,9 +48,12 @@ export class WavesNameService {
     this.config = {
       version: 2,
       type: 16,
-      HOST: HOST_ENTRIES[config.network] || HOST_ENTRIES['testnet'],
-      AUCTION_DURANCE,
+      HOST: HOST_ENTRIES[config.network || 'testnet'],
+      AUCTION_DURATION,
       CONTRACT_ADDRESS,
+      REVEAL_DURATION,
+      INIT_TIMESTAMP,
+      BID_DURATION,
       ...config,
     };
   }
@@ -208,13 +217,34 @@ export class WavesNameService {
       const firstAuctionTimestamp = await response.json();
       const currentTimeStamp = Date.now();
       const auctionDifference = currentTimeStamp - firstAuctionTimestamp;
-      const auctionId = Math.floor(auctionDifference / AUCTION_DURANCE);
+      const auctionId = Math.floor(auctionDifference / AUCTION_DURATION);
       return auctionId;
     } catch (error) {
       this.logger(error);
     }
 
     return null;
+  }
+
+  public async getBlockchainTimestamp() {
+    try {
+      const response = await fetch(`${this.config.HOST}blocks/headers/last`);
+      let result = await response.json();
+      return result.timestamp;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  
+  public getStatus(auctionId: number, blockchainTimestamp: number) {
+    let currentPeriodStart =
+    auctionId * (this.config.BID_DURATION + this.config.REVEAL_DURATION) + this.config.INIT_TIMESTAMP;
+    let currentAuctionTime = blockchainTimestamp - currentPeriodStart;
+    let period = currentAuctionTime > BID_DURATION ? "reveal" : "bid";
+
+    return period;
   }
 }
 

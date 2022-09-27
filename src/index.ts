@@ -38,7 +38,7 @@ interface Config {
 export class WavesNameService {
   config: Config;
 
-  constructor(config: Partial<Config>) {
+  constructor(config: Partial<Config> = {}) {
     const HOST_ENTRIES = {
       mainnet: PROD_HOST,
       testnet: TEST_HOST,

@@ -15,9 +15,9 @@ type NumEntry = string | number | BigInt;
 const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
 const CONTRACT_ADDRESS = '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH';
-const PROD_HOST = 'https://nodes-keeper.wavesnodes.com/';
-const TEST_HOST = 'https://nodes-testnet.wavesnodes.com/';
-const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com/';
+const PROD_HOST = 'https://nodes-keeper.wavesnodes.com';
+const TEST_HOST = 'https://nodes-testnet.wavesnodes.com';
+const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com';
 const AUCTION_DURATION = 518400000;
 const INIT_TIMESTAMP = 1664125224707;
 const REVEAL_DURATION = 180000;
@@ -181,7 +181,7 @@ export class WavesNameService {
   public async reverseLookup(address: string) {
     try {
       const response = await fetch(
-        `${this.config.HOST}utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+        `${this.config.HOST}/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -228,7 +228,7 @@ export class WavesNameService {
 
   public async getBlockchainTimestamp() {
     try {
-      const response = await fetch(`${this.config.HOST}blocks/headers/last`);
+      const response = await fetch(`${this.config.HOST}/blocks/headers/last`);
       let result = await response.json();
       return result.timestamp;
     } catch (error) {

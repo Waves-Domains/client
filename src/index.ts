@@ -1,4 +1,4 @@
-import libCrypto from '@waves/ts-lib-crypto';
+import * as libCrypto from '@waves/ts-lib-crypto';
 import Long from 'long';
 
 type EvaluateResponse = {

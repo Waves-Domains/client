@@ -383,6 +383,26 @@ export class WavesNameService {
       throw error;
     }
   }
+
+  public async reveal(auctionId: number, name: string, bidAmount: string) {
+    try {
+      const data = await this.evaluateScript(`func reveal(${auctionId}, ${name}, ${bidAmount})`);
+      return data;
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
+  }
+
+  public async refund(auctionId: number, hashes: string[]) {
+    try {
+      const data = await this.evaluateScript(`func finalize(${auctionId}, ${hashes})`);
+      return data;
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
+  }
 }
 
 export default WavesNameService;

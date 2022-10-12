@@ -403,6 +403,26 @@ export class WavesNameService {
       throw error;
     }
   }
+
+  public async claimNFT(name: string, walletAddress: string, createdAt: string) {
+    try {
+      const data = await this.evaluateScript(`func registrer.addName(${name}, ${walletAddress}, ${createdAt})`);
+      return data;
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
+  }
+
+  public async reclaim(name: string) {
+    try {
+      const data = await this.evaluateScript(`func registrer.reclaim(${name})`);
+      return data;
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
+  }
 }
 
 export default WavesNameService;

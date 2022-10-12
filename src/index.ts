@@ -10,11 +10,34 @@ type EvaluateResponse = {
   };
 };
 
+interface GetNftsItem {
+  assetId: string;
+  decimals: 0;
+  description: string;
+  issueHeight: number;
+  issueTimestamp: number;
+  issuer: string;
+  issuerPublicKey: string;
+  minSponsoredAssetFee: null;
+  name: string;
+  originTransactionId: string;
+  quantity: 1;
+  reissuable: false;
+  scripted: boolean;
+}
+
+type GetNftsResponse = GetNftsItem[];
+
+export interface NameEntry {
+  name: string;
+}
+
 type NumEntry = string | number | BigInt;
 
 const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
 const CONTRACT_ADDRESS = '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH';
+const REGISTRAR_ADDRESS = '3NA73oUXjqp7SpudXWV1yMFuKm9awPbqsVz';
 const PROD_HOST = 'https://nodes-keeper.wavesnodes.com';
 const TEST_HOST = 'https://nodes-testnet.wavesnodes.com';
 const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com';
@@ -22,6 +45,22 @@ const AUCTION_DURATION = 518400000;
 const INIT_TIMESTAMP = 1664125224707;
 const REVEAL_DURATION = 180000;
 const BID_DURATION = 180000;
+
+export interface AuctionData {
+  auctionId: number;
+  phase: 'BID' | 'REVEAL';
+  bidStart: string;
+  revealStart: string;
+  auctionEnd: string;
+}
+
+export interface WhoIsData {
+  registrantAddress: string;
+  resolverAddress: string;
+  createdAt: string;
+  expiresAt: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
+}
 
 interface Config {
   version?: number;
@@ -35,16 +74,16 @@ interface Config {
   BID_DURATION: number;
 }
 
+const HOST_ENTRIES = {
+  mainnet: PROD_HOST,
+  testnet: TEST_HOST,
+  stagenet: STAGE_HOST,
+};
+
 export class WavesNameService {
   config: Config;
 
   constructor(config: Partial<Config> = {}) {
-    const HOST_ENTRIES = {
-      mainnet: PROD_HOST,
-      testnet: TEST_HOST,
-      stagenet: STAGE_HOST,
-    };
-
     this.config = {
       version: 2,
       type: 16,
@@ -164,7 +203,7 @@ export class WavesNameService {
             },
           ],
         },
-        payments: [
+        payment: [
           {
             amount,
             assetId: null,
@@ -204,20 +243,94 @@ export class WavesNameService {
     return null;
   }
 
+  async evaluateScript(expr: string) {
+    const requestUrl = new URL(
+      `/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+      this.config.HOST
+    );
+
+    const response = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ expr }),
+    });
+
+    return response.json();
+  }
+
+  public async getAuction(): Promise<AuctionData | null> {
+    try {
+      const response = await fetch(
+        `${this.config.HOST}/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: `{
+              "expr": "getAuction()"
+            }`,
+        }
+      );
+
+      if (!response.ok) {
+        this.logger(`${response.status}`);
+
+        return null;
+      }
+
+      const data = await response.json();
+
+      const {
+        result: {
+          value: {
+            _1: { value: auctionId },
+            _2: { value: phase },
+            _3: { value: bidStart },
+            _4: { value: revealStart },
+            _5: { value: auctionEnd },
+          },
+        },
+      } = data;
+
+      return {
+        auctionId,
+        phase,
+        bidStart,
+        revealStart,
+        auctionEnd,
+      };
+    } catch (err) {
+      this.logger(err);
+    }
+
+    return null;
+  }
+
   public async getCurrentAuctionId() {
     try {
       const response = await fetch(
-        `${this.config.HOST}/addresses/data/${this.config.CONTRACT_ADDRESS}/init_timestamp`
+        `${this.config.HOST}/addresses/data/${this.config.CONTRACT_ADDRESS}/initTimestamp`
       );
       if (!response.ok) {
         this.logger(Error(`${response.status}`));
         return null;
       }
 
-      const firstAuctionTimestamp = await response.json();
+      const auctionData = await response.json();
+      const firstAuctionTimestamp = auctionData.value;
       const currentTimeStamp = Date.now();
+
       const auctionDifference = currentTimeStamp - firstAuctionTimestamp;
       const auctionId = Math.floor(auctionDifference / AUCTION_DURATION);
+
+      console.log('firstAuctionTimestamp', {
+        firstAuctionTimestamp,
+        currentTimeStamp,
+        auctionDifference,
+        AUCTION_DURATION,
+      });
+
       return auctionId;
     } catch (error) {
       this.logger(error);
@@ -237,14 +350,38 @@ export class WavesNameService {
     }
   }
 
-  
   public getStatus(auctionId: number, blockchainTimestamp: number) {
     let currentPeriodStart =
-    auctionId * (this.config.BID_DURATION + this.config.REVEAL_DURATION) + this.config.INIT_TIMESTAMP;
+      auctionId * (this.config.BID_DURATION + this.config.REVEAL_DURATION) +
+      this.config.INIT_TIMESTAMP;
     let currentAuctionTime = blockchainTimestamp - currentPeriodStart;
-    let period = currentAuctionTime > BID_DURATION ? "reveal" : "bid";
+    let period = currentAuctionTime > BID_DURATION ? 'reveal' : 'bid';
 
     return period;
+  }
+
+  public async getNamesOwnedBy(address: string) {
+    const nfts = await fetch(
+      `${this.config.HOST}/assets/nft/${address}/limit/1000`
+    ).then<GetNftsResponse>((response) => response.json());
+
+    return nfts
+      .filter((nft) => nft.issuer === REGISTRAR_ADDRESS)
+      .map(
+        (nft): NameEntry => ({
+          name: nft.description,
+        })
+      );
+  }
+
+  public async whoIs(name: string): Promise<WhoIsData> {
+    try {
+      const data = await this.evaluateScript(`func whoIs(${name})`);
+      return data;
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
   }
 }
 

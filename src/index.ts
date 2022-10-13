@@ -147,7 +147,7 @@ export class WavesNameService {
         {
           method: 'POST',
           body: JSON.stringify({
-            expr: `lookup(${name})`,
+            expr: `whoIs(${name})`,
           }),
         }
       );
@@ -186,7 +186,7 @@ export class WavesNameService {
 
       const encoded58hash = libCrypto.base58Encode(hash);
 
-      return {
+      const bidTx = {
         type: INVOKE_TX_TYPE,
         version: this.config.version,
         dApp: this.config.CONTRACT_ADDRESS,
@@ -210,11 +210,13 @@ export class WavesNameService {
           },
         ],
       };
+
+      return { bidTx, hash: encoded58hash }
     } catch (error) {
       this.logger(error);
     }
 
-    return null;
+    return {};
   }
 
   public async reverseLookup(address: string) {
@@ -257,29 +259,18 @@ export class WavesNameService {
       body: JSON.stringify({ expr }),
     });
 
-    return response.json();
+    if (!response.ok) {
+      this.logger(`${response.status}`);
+
+      return null;
+    }
+
+    return await response.json();
   }
 
   public async getAuction(): Promise<AuctionData | null> {
     try {
-      const response = await fetch(
-        `${this.config.HOST}/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: `{
-              "expr": "getAuction()"
-            }`,
-        }
-      );
-
-      if (!response.ok) {
-        this.logger(`${response.status}`);
-
-        return null;
-      }
-
-      const data = await response.json();
+      const response = await this.evaluateScript('getAuction()');
 
       const {
         result: {
@@ -291,7 +282,7 @@ export class WavesNameService {
             _5: { value: auctionEnd },
           },
         },
-      } = data;
+      } = response;
 
       return {
         auctionId,
@@ -374,9 +365,9 @@ export class WavesNameService {
       );
   }
 
-  public async whoIs(name: string): Promise<WhoIsData> {
+  public async whoIs(name: string, domain: string): Promise<WhoIsData> {
     try {
-      const data = await this.evaluateScript(`func whoIs(${name})`);
+      const data = await this.evaluateScript(`whoIs(${name}${domain})`);
       return data;
     } catch (error) {
       this.logger(error);
@@ -386,7 +377,7 @@ export class WavesNameService {
 
   public async reveal(auctionId: number, name: string, bidAmount: string) {
     try {
-      const data = await this.evaluateScript(`func reveal(${auctionId}, ${name}, ${bidAmount})`);
+      const data = await this.evaluateScript(`reveal(${auctionId}, ${name}, ${bidAmount})`);
       return data;
     } catch (error) {
       this.logger(error);
@@ -396,7 +387,7 @@ export class WavesNameService {
 
   public async refund(auctionId: number, hashes: string[]) {
     try {
-      const data = await this.evaluateScript(`func finalize(${auctionId}, ${hashes})`);
+      const data = await this.evaluateScript(`finalize(${auctionId}, ${hashes})`);
       return data;
     } catch (error) {
       this.logger(error);
@@ -406,7 +397,7 @@ export class WavesNameService {
 
   public async claimNFT(name: string, walletAddress: string, createdAt: string) {
     try {
-      const data = await this.evaluateScript(`func registrer.addName(${name}, ${walletAddress}, ${createdAt})`);
+      const data = await this.evaluateScript(`registrer.addName(${name}, ${walletAddress}, ${createdAt})`);
       return data;
     } catch (error) {
       this.logger(error);
@@ -416,7 +407,7 @@ export class WavesNameService {
 
   public async reclaim(name: string) {
     try {
-      const data = await this.evaluateScript(`func registrer.reclaim(${name})`);
+      const data = await this.evaluateScript(`registrer.reclaim(${name})`);
       return data;
     } catch (error) {
       this.logger(error);

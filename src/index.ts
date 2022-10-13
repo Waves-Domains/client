@@ -38,6 +38,7 @@ const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
 const CONTRACT_ADDRESS = '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH';
 const REGISTRAR_ADDRESS = '3NA73oUXjqp7SpudXWV1yMFuKm9awPbqsVz';
+const ROOT_RESOLVER_ADDRESS = '3MwsyDjSTFfcbxaGnwD9YLMMfXSu4K74HT9';
 const PROD_HOST = 'https://nodes-keeper.wavesnodes.com';
 const TEST_HOST = 'https://nodes-testnet.wavesnodes.com';
 const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com';
@@ -69,6 +70,7 @@ interface Config {
   HOST?: string;
   AUCTION_DURATION: number;
   CONTRACT_ADDRESS: string;
+  ROOT_RESOLVER_ADDRESS: string;
   REVEAL_DURATION: number;
   INIT_TIMESTAMP: number;
   BID_DURATION: number;
@@ -90,6 +92,7 @@ export class WavesNameService {
       HOST: HOST_ENTRIES[config.network || 'testnet'],
       AUCTION_DURATION,
       CONTRACT_ADDRESS,
+      ROOT_RESOLVER_ADDRESS,
       REVEAL_DURATION,
       INIT_TIMESTAMP,
       BID_DURATION,
@@ -245,9 +248,9 @@ export class WavesNameService {
     return null;
   }
 
-  async evaluateScript(expr: string) {
+  async evaluateScript(expr: string, dApp: string = this.config.CONTRACT_ADDRESS) {
     const requestUrl = new URL(
-      `/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+      `/utils/script/evaluate/${dApp}`,
       this.config.HOST
     );
 
@@ -298,38 +301,6 @@ export class WavesNameService {
     return null;
   }
 
-  public async getCurrentAuctionId() {
-    try {
-      const response = await fetch(
-        `${this.config.HOST}/addresses/data/${this.config.CONTRACT_ADDRESS}/initTimestamp`
-      );
-      if (!response.ok) {
-        this.logger(Error(`${response.status}`));
-        return null;
-      }
-
-      const auctionData = await response.json();
-      const firstAuctionTimestamp = auctionData.value;
-      const currentTimeStamp = Date.now();
-
-      const auctionDifference = currentTimeStamp - firstAuctionTimestamp;
-      const auctionId = Math.floor(auctionDifference / AUCTION_DURATION);
-
-      console.log('firstAuctionTimestamp', {
-        firstAuctionTimestamp,
-        currentTimeStamp,
-        auctionDifference,
-        AUCTION_DURATION,
-      });
-
-      return auctionId;
-    } catch (error) {
-      this.logger(error);
-    }
-
-    return null;
-  }
-
   public async getBlockchainTimestamp() {
     try {
       const response = await fetch(`${this.config.HOST}/blocks/headers/last`);
@@ -367,7 +338,7 @@ export class WavesNameService {
 
   public async whoIs(name: string, domain: string): Promise<WhoIsData> {
     try {
-      const data = await this.evaluateScript(`whoIs(${name}${domain})`);
+      const data = await this.evaluateScript(`whoIs(${name}${domain})`, this.config.ROOT_RESOLVER_ADDRESS);
       return data;
     } catch (error) {
       this.logger(error);

@@ -1,4 +1,8 @@
 import * as libCrypto from '@waves/ts-lib-crypto';
+import {
+  DataTransactionEntry,
+  DataTransactionEntryString,
+} from '@waves/ts-types';
 import Long from 'long';
 
 type EvaluateResponse = {
@@ -26,26 +30,17 @@ interface GetNftsItem {
   scripted: boolean;
 }
 
-type GetNftsResponse = GetNftsItem[];
+interface NameDetails {
+  createdAt: number;
+  expiresAt: number;
+  token: string;
+}
 
-export interface NameEntry {
+export interface NameEntry extends NameDetails {
   name: string;
 }
 
 type NumEntry = string | number | bigint;
-
-const INVOKE_TX_TYPE = 16;
-const INVOKE_FUNCTION_BID = 'bid';
-const CONTRACT_ADDRESS = '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH';
-const REGISTRAR_ADDRESS = '3NA73oUXjqp7SpudXWV1yMFuKm9awPbqsVz';
-const ROOT_RESOLVER_ADDRESS = '3MwsyDjSTFfcbxaGnwD9YLMMfXSu4K74HT9';
-const PROD_HOST = 'https://nodes-keeper.wavesnodes.com';
-const TEST_HOST = 'https://nodes-testnet.wavesnodes.com';
-const STAGE_HOST = 'https://nodes-stagenet.wavesnodes.com';
-const AUCTION_DURATION = 518400000;
-const INIT_TIMESTAMP = 1664125224707;
-const REVEAL_DURATION = 180000;
-const BID_DURATION = 180000;
 
 export interface AuctionData {
   auctionId: number;
@@ -60,44 +55,55 @@ export interface WhoIsData {
   resolverAddress: string;
   createdAt: string;
   expiresAt: string;
-  status: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
+  status: 'REGISTERED' | 'NOT_REGISTERED';
 }
 
-interface Config {
-  version?: number;
-  type?: number;
-  network?: 'mainnet' | 'testnet' | 'stagenet';
-  HOST?: string;
-  AUCTION_DURATION: number;
-  CONTRACT_ADDRESS: string;
-  ROOT_RESOLVER_ADDRESS: string;
-  REVEAL_DURATION: number;
-  INIT_TIMESTAMP: number;
-  BID_DURATION: number;
+interface NetworkConfig {
+  auctionDuration: number;
+  bidDuration: number;
+  contractAddress: string;
+  initTimestamp: number;
+  nodeBaseUrl: string;
+  registrarAddress: string;
+  revealDuration: number;
+  rootRegistrarAddress: string;
+  rootResolverAddress: string;
 }
 
-const HOST_ENTRIES = {
-  mainnet: PROD_HOST,
-  testnet: TEST_HOST,
-  stagenet: STAGE_HOST,
+const NETWORK_CONFIGS: Record<'mainnet' | 'testnet', NetworkConfig> = {
+  mainnet: {
+    auctionDuration: 518400000,
+    bidDuration: 180000,
+    contractAddress: '',
+    initTimestamp: 1664125224707,
+    nodeBaseUrl: 'https://nodes.wavesnodes.com',
+    registrarAddress: '',
+    revealDuration: 180000,
+    rootRegistrarAddress: '',
+    rootResolverAddress: '',
+  },
+  testnet: {
+    auctionDuration: 518400000,
+    bidDuration: 180000,
+    contractAddress: '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH',
+    initTimestamp: 1664125224707,
+    nodeBaseUrl: 'https://nodes-testnet.wavesnodes.com',
+    registrarAddress: '3NA73oUXjqp7SpudXWV1yMFuKm9awPbqsVz',
+    revealDuration: 180000,
+    rootRegistrarAddress: '3MvCgypmBZFTRqL5HuRwCgS7maC7Fkv7pZY',
+    rootResolverAddress: '3MwsyDjSTFfcbxaGnwD9YLMMfXSu4K74HT9',
+  },
 };
 
-export class WavesNameService {
-  config: Config;
+export interface WavesNameServiceConfig {
+  network?: keyof typeof NETWORK_CONFIGS;
+}
 
-  constructor(config: Partial<Config> = {}) {
-    this.config = {
-      version: 2,
-      type: 16,
-      HOST: HOST_ENTRIES[config.network || 'testnet'],
-      AUCTION_DURATION,
-      CONTRACT_ADDRESS,
-      ROOT_RESOLVER_ADDRESS,
-      REVEAL_DURATION,
-      INIT_TIMESTAMP,
-      BID_DURATION,
-      ...config,
-    };
+export class WavesNameService {
+  config: NetworkConfig;
+
+  constructor({ network = 'mainnet' }: WavesNameServiceConfig = {}) {
+    this.config = NETWORK_CONFIGS[network];
   }
 
   private isNaturalNumber(value: NumEntry) {
@@ -105,6 +111,12 @@ export class WavesNameService {
     const n1 = Math.abs(+n),
       n2 = parseInt(n, 10);
     return !isNaN(n1) && n2 === n1 && n1.toString() === n;
+  }
+
+  private checkEmptyUint(value: string | number | object) {
+    return typeof value === 'object' && !Object.keys(value).length
+      ? null
+      : value;
   }
 
   private validate({
@@ -146,7 +158,10 @@ export class WavesNameService {
   public async lookup(name: string) {
     try {
       const response = await fetch(
-        `${this.config.HOST}/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+        new URL(
+          `/utils/script/evaluate/${this.config.contractAddress}`,
+          this.config.nodeBaseUrl
+        ),
         {
           method: 'POST',
           body: JSON.stringify({
@@ -190,11 +205,11 @@ export class WavesNameService {
       const encoded58hash = libCrypto.base58Encode(hash);
 
       const bidTx = {
-        type: INVOKE_TX_TYPE,
-        version: this.config.version,
-        dApp: this.config.CONTRACT_ADDRESS,
+        type: 16,
+        version: 2,
+        dApp: this.config.contractAddress,
         call: {
-          function: INVOKE_FUNCTION_BID,
+          function: 'bid',
           args: [
             {
               type: 'integer',
@@ -225,7 +240,10 @@ export class WavesNameService {
   public async reverseLookup(address: string) {
     try {
       const response = await fetch(
-        `${this.config.HOST}/utils/script/evaluate/${this.config.CONTRACT_ADDRESS}`,
+        new URL(
+          `/utils/script/evaluate/${this.config.contractAddress}`,
+          this.config.nodeBaseUrl
+        ),
         {
           method: 'POST',
           body: JSON.stringify({
@@ -250,16 +268,17 @@ export class WavesNameService {
 
   async evaluateScript(
     expr: string,
-    dApp: string = this.config.CONTRACT_ADDRESS
+    dApp: string = this.config.contractAddress
   ) {
     const requestUrl = new URL(
       `/utils/script/evaluate/${dApp}`,
-      this.config.HOST
+      this.config.nodeBaseUrl
     );
 
     const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
+        accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ expr }),
@@ -306,7 +325,9 @@ export class WavesNameService {
 
   public async getBlockchainTimestamp() {
     try {
-      const response = await fetch(`${this.config.HOST}/blocks/headers/last`);
+      const response = await fetch(
+        new URL('/blocks/headers/last', this.config.nodeBaseUrl)
+      );
       const result = await response.json();
       return result.timestamp;
     } catch (error) {
@@ -317,45 +338,192 @@ export class WavesNameService {
 
   public getStatus(auctionId: number, blockchainTimestamp: number) {
     const currentPeriodStart =
-      auctionId * (this.config.BID_DURATION + this.config.REVEAL_DURATION) +
-      this.config.INIT_TIMESTAMP;
+      auctionId * (this.config.bidDuration + this.config.revealDuration) +
+      this.config.initTimestamp;
     const currentAuctionTime = blockchainTimestamp - currentPeriodStart;
-    const period = currentAuctionTime > BID_DURATION ? 'reveal' : 'bid';
+    const period =
+      currentAuctionTime > this.config.bidDuration ? 'reveal' : 'bid';
 
     return period;
   }
 
-  public async getNamesOwnedBy(address: string) {
-    const nfts = await fetch(
-      `${this.config.HOST}/assets/nft/${address}/limit/1000`
-    ).then<GetNftsResponse>(response => response.json());
+  private async getNfts(address: string) {
+    const response = await fetch(
+      new URL(`/assets/nft/${address}/limit/1000`, this.config.nodeBaseUrl)
+    );
 
-    return nfts
-      .filter(nft => nft.issuer === REGISTRAR_ADDRESS)
-      .map(
-        (nft): NameEntry => ({
-          name: nft.description,
-        })
+    if (!response.ok) {
+      throw new Error(
+        `Could not fetch nfts (${response.status} ${
+          response.statusText
+        }): ${await response.text()}`
       );
+    }
+
+    const nfts: GetNftsItem[] = await response.json();
+
+    return nfts;
   }
 
-  public async whoIs(name: string, domain: string): Promise<WhoIsData> {
+  private async getRegistrarNamesFromNfts(nfts: GetNftsItem[]) {
+    const registrarNfts = nfts.filter(
+      nft => nft.issuer === this.config.registrarAddress
+    );
+
+    if (registrarNfts.length === 0) {
+      return [];
+    }
+
+    const response = await fetch(
+      new URL(
+        `/addresses/data/${this.config.registrarAddress}`,
+        this.config.nodeBaseUrl
+      ),
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json; large-significand-format=string',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          keys: registrarNfts.map(nft => `Token_${nft.assetId}_name`),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Could not fetch registrar token entries (${response.status} ${
+          response.statusText
+        }): ${await response.text()}`
+      );
+    }
+
+    const dataEntries: DataTransactionEntryString[] = await response.json();
+
+    return dataEntries.map(entry => entry.value);
+  }
+
+  private async getRegistrarNamesDetails(names: string[]) {
+    if (names.length === 0) {
+      return {};
+    }
+
+    const createdAtKey = (name: string) => `Name_${name}_createdAt`;
+    const expiresAtKey = (name: string) => `Name_${name}_expiresAt`;
+    const tokenKey = (name: string) => `Name_${name}_token`;
+
+    const response = await fetch(
+      new URL(
+        `/addresses/data/${this.config.registrarAddress}`,
+        this.config.nodeBaseUrl
+      ),
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          keys: names.flatMap(name => [
+            createdAtKey(name),
+            expiresAtKey(name),
+            tokenKey(name),
+          ]),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Could not fetch names details (${response.status} ${
+          response.statusText
+        }): ${await response.text()}`
+      );
+    }
+
+    const dataEntries: DataTransactionEntry<number>[] = await response.json();
+
+    const entriesRecord = Object.fromEntries(
+      dataEntries.map(entry => [entry.key, entry.value])
+    );
+
+    return Object.fromEntries(
+      names.map((name): [string, NameDetails] => [
+        name,
+        {
+          createdAt: Number(entriesRecord[createdAtKey(name)]),
+          expiresAt: Number(entriesRecord[expiresAtKey(name)]),
+          token: String(entriesRecord[tokenKey(name)]),
+        },
+      ])
+    );
+  }
+
+  public async getNamesOwnedBy(address: string) {
+    const nfts = await this.getNfts(address);
+    const registrarNames = await this.getRegistrarNamesFromNfts(nfts);
+    const namesDetails = await this.getRegistrarNamesDetails(registrarNames);
+
+    return registrarNames.map(
+      (name): NameEntry => ({
+        name,
+        ...namesDetails[name],
+      })
+    );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  public async whoIs(name: string, domain: string): Promise<WhoIsData | {}> {
     try {
       const data = await this.evaluateScript(
-        `whoIs(${name}${domain})`,
-        this.config.ROOT_RESOLVER_ADDRESS
+        `whoIs("${name}${domain}")`,
+        this.config.rootRegistrarAddress
       );
-      return data;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const {
+        result: {
+          value: {
+            _2: {
+              value: {
+                _1: { value: registrantAddress },
+                _2: { value: resolverAddress },
+                _3: { value: createdAt },
+                _4: { value: expiresAt },
+              },
+            },
+          },
+        },
+      } = data;
+
+      return {
+        registrantAddress: this.checkEmptyUint(registrantAddress),
+        resolverAddress: this.checkEmptyUint(resolverAddress),
+        createdAt: this.checkEmptyUint(createdAt),
+        expiresAt: this.checkEmptyUint(expiresAt),
+        status: this.checkEmptyUint(registrantAddress)
+          ? 'REGISTERED'
+          : 'NOT_REGISTERED',
+      };
     } catch (error) {
       this.logger(error);
       throw error;
     }
   }
 
-  public async reveal(auctionId: number, name: string, bidAmount: string) {
+  public async reveal(
+    auctionId: number,
+    name: string,
+    domain: string,
+    bidAmount: string
+  ) {
     try {
       const data = await this.evaluateScript(
-        `reveal(${auctionId}, ${name}, ${bidAmount})`
+        `reveal(${auctionId}, "${name}${domain}", ${bidAmount})`
       );
       return data;
     } catch (error) {
@@ -376,14 +544,46 @@ export class WavesNameService {
     }
   }
 
+  public async available(name: string, domain: string): Promise<WhoIsData> {
+    try {
+      const data = await this.evaluateScript(`available("${name}${domain}")`);
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const {
+        result: {
+          value: {
+            _2: { value: isAvailable },
+          },
+        },
+      } = data;
+
+      return {
+        registrantAddress: '',
+        resolverAddress: '',
+        createdAt: '',
+        expiresAt: '',
+        status: this.checkEmptyUint(isAvailable)
+          ? 'REGISTERED'
+          : 'NOT_REGISTERED',
+      };
+    } catch (error) {
+      this.logger(error);
+      throw error;
+    }
+  }
+
   public async claimNFT(
     name: string,
+    domain: string,
     walletAddress: string,
     createdAt: string
   ) {
     try {
       const data = await this.evaluateScript(
-        `registrer.addName(${name}, ${walletAddress}, ${createdAt})`
+        `addName("${name}${domain}", ${walletAddress}, ${createdAt})`
       );
       return data;
     } catch (error) {
@@ -392,9 +592,9 @@ export class WavesNameService {
     }
   }
 
-  public async reclaim(name: string) {
+  public async reclaim(name: string, domain: string) {
     try {
-      const data = await this.evaluateScript(`registrer.reclaim(${name})`);
+      const data = await this.evaluateScript(`reclaim("${name}${domain}")`);
       return data;
     } catch (error) {
       this.logger(error);

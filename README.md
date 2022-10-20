@@ -1,6 +1,6 @@
 # wns-js-library
 
-## methods: 
+## methods:
 
 ### makeBidTx
 

@@ -214,7 +214,7 @@ export class WavesNameService {
         ],
       };
 
-      return { bidTx, hash: encoded58hash }
+      return { bidTx, hash: encoded58hash };
     } catch (error) {
       this.logger(error);
     }
@@ -248,7 +248,10 @@ export class WavesNameService {
     return null;
   }
 
-  async evaluateScript(expr: string, dApp: string = this.config.CONTRACT_ADDRESS) {
+  async evaluateScript(
+    expr: string,
+    dApp: string = this.config.CONTRACT_ADDRESS
+  ) {
     const requestUrl = new URL(
       `/utils/script/evaluate/${dApp}`,
       this.config.HOST
@@ -325,10 +328,10 @@ export class WavesNameService {
   public async getNamesOwnedBy(address: string) {
     const nfts = await fetch(
       `${this.config.HOST}/assets/nft/${address}/limit/1000`
-    ).then<GetNftsResponse>((response) => response.json());
+    ).then<GetNftsResponse>(response => response.json());
 
     return nfts
-      .filter((nft) => nft.issuer === REGISTRAR_ADDRESS)
+      .filter(nft => nft.issuer === REGISTRAR_ADDRESS)
       .map(
         (nft): NameEntry => ({
           name: nft.description,
@@ -338,7 +341,10 @@ export class WavesNameService {
 
   public async whoIs(name: string, domain: string): Promise<WhoIsData> {
     try {
-      const data = await this.evaluateScript(`whoIs(${name}${domain})`, this.config.ROOT_RESOLVER_ADDRESS);
+      const data = await this.evaluateScript(
+        `whoIs(${name}${domain})`,
+        this.config.ROOT_RESOLVER_ADDRESS
+      );
       return data;
     } catch (error) {
       this.logger(error);
@@ -348,7 +354,9 @@ export class WavesNameService {
 
   public async reveal(auctionId: number, name: string, bidAmount: string) {
     try {
-      const data = await this.evaluateScript(`reveal(${auctionId}, ${name}, ${bidAmount})`);
+      const data = await this.evaluateScript(
+        `reveal(${auctionId}, ${name}, ${bidAmount})`
+      );
       return data;
     } catch (error) {
       this.logger(error);
@@ -358,7 +366,9 @@ export class WavesNameService {
 
   public async refund(auctionId: number, hashes: string[]) {
     try {
-      const data = await this.evaluateScript(`finalize(${auctionId}, ${hashes})`);
+      const data = await this.evaluateScript(
+        `finalize(${auctionId}, ${hashes})`
+      );
       return data;
     } catch (error) {
       this.logger(error);
@@ -366,9 +376,15 @@ export class WavesNameService {
     }
   }
 
-  public async claimNFT(name: string, walletAddress: string, createdAt: string) {
+  public async claimNFT(
+    name: string,
+    walletAddress: string,
+    createdAt: string
+  ) {
     try {
-      const data = await this.evaluateScript(`registrer.addName(${name}, ${walletAddress}, ${createdAt})`);
+      const data = await this.evaluateScript(
+        `registrer.addName(${name}, ${walletAddress}, ${createdAt})`
+      );
       return data;
     } catch (error) {
       this.logger(error);

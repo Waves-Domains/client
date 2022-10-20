@@ -1,220 +1,115 @@
-interface EvaluateResponse {
-  address: string;
-  expr: string;
-  result: {
-    type: string;
-    value: string;
-  };
+import { extractSEItemValue, SETuple } from './utils';
+
+type EvaluateResponse = { address: string; expr: string } & (
+  | { complexity: number; result: SETuple }
+  | { error: number; message: string }
+);
+
+export enum WhoIsStatus {
+  Registered = 'REGISTERED',
+  NotRegistered = 'NOT_REGISTERED',
 }
 
-export interface WhoIsData {
-  registrantAddress: string;
-  resolverAddress: string;
-  createdAt: string;
-  expiresAt: string;
-  status: 'REGISTERED' | 'NOT_REGISTERED';
+export interface WhoIsResult {
+  createdAt: number | null;
+  expiresAt: number | null;
+  registrantAddress: string | null;
+  resolverAddress: string | null;
+  status: WhoIsStatus;
 }
 
 interface NetworkConfig {
-  contractAddress: string;
   nodeBaseUrl: string;
-  rootRegistrarAddress: string;
+  rootRegistryAddress: string;
+  rootResolverAddress: string;
 }
 
 const NETWORK_CONFIGS: Record<'mainnet' | 'testnet', NetworkConfig> = {
   mainnet: {
-    contractAddress: '',
     nodeBaseUrl: 'https://nodes.wavesnodes.com',
-    rootRegistrarAddress: '',
+    rootRegistryAddress: '',
+    rootResolverAddress: '',
   },
   testnet: {
-    contractAddress: '3MxssetYXJfiGwzo9pqChsSwYj3tCYq5FFH',
     nodeBaseUrl: 'https://nodes-testnet.wavesnodes.com',
-    rootRegistrarAddress: '3MvCgypmBZFTRqL5HuRwCgS7maC7Fkv7pZY',
+    rootRegistryAddress: '3MvCgypmBZFTRqL5HuRwCgS7maC7Fkv7pZY',
+    rootResolverAddress: '3MwsyDjSTFfcbxaGnwD9YLMMfXSu4K74HT9',
   },
 };
 
-export interface WavesNameServiceConfig {
+export interface WavesDomainsClientConfig {
   network?: keyof typeof NETWORK_CONFIGS;
 }
 
-export class WavesNameService {
+type ResolveEvaluateResult = [actions: [], address: string | null];
+
+type WhoIsEvaluateResult = [
+  actions: [],
+  returnValue: [
+    registrantAddress: string | null,
+    resolverAddress: string | null,
+    createdAt: string | null,
+    expiresAt: string | null
+  ]
+];
+
+export class WavesDomainsClient {
   #config: NetworkConfig;
 
-  constructor({ network = 'mainnet' }: WavesNameServiceConfig = {}) {
+  constructor({ network = 'mainnet' }: WavesDomainsClientConfig = {}) {
     this.#config = NETWORK_CONFIGS[network];
   }
 
-  #checkEmptyUint(value: string | number | object) {
-    return typeof value === 'object' && !Object.keys(value).length
-      ? null
-      : value;
-  }
-
-  #logger = (error: unknown, value?: unknown) => {
-    console.error(
-      'wns-js-library error: ',
-      error,
-      value ? ' value: ' + value : ''
-    );
-  };
-
-  async lookup(name: string) {
-    try {
-      const response = await fetch(
-        new URL(
-          `/utils/script/evaluate/${this.#config.contractAddress}`,
-          this.#config.nodeBaseUrl
-        ),
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            expr: `whoIs(${name})`,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        this.#logger(Error(`${response.status}`));
-        return null;
+  async #evaluate<Values>(dApp: string, expression: string) {
+    const response = await fetch(
+      new URL(`/utils/script/evaluate/${dApp}`, this.#config.nodeBaseUrl),
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json; large-significand-format=string',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ expr: expression }),
       }
-
-      return (await response.json()) as EvaluateResponse;
-    } catch (err) {
-      this.#logger(err);
-    }
-
-    return null;
-  }
-
-  async reverseLookup(address: string) {
-    try {
-      const response = await fetch(
-        new URL(
-          `/utils/script/evaluate/${this.#config.contractAddress}`,
-          this.#config.nodeBaseUrl
-        ),
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            expr: `reverseLookup(${address})`,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        this.#logger(`${response.status}`);
-
-        return null;
-      }
-
-      return await response.json();
-    } catch (err) {
-      this.#logger(err);
-    }
-
-    return null;
-  }
-
-  async evaluateScript(
-    expr: string,
-    dApp: string = this.#config.contractAddress
-  ) {
-    const requestUrl = new URL(
-      `/utils/script/evaluate/${dApp}`,
-      this.#config.nodeBaseUrl
     );
-
-    const response = await fetch(requestUrl, {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ expr }),
-    });
 
     if (!response.ok) {
-      this.#logger(`${response.status}`);
-
-      return null;
+      throw new Error(`Evaluate script failed: ${await response.text()}`);
     }
 
-    return await response.json();
+    const json: EvaluateResponse = await response.json();
+
+    if ('error' in json) {
+      throw new Error(json.message);
+    }
+
+    return extractSEItemValue(json.result) as Values;
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  async whoIs(name: string, domain: string): Promise<WhoIsData | {}> {
-    try {
-      const data = await this.evaluateScript(
-        `whoIs("${name}${domain}")`,
-        this.#config.rootRegistrarAddress
+  async resolve(name: string) {
+    const [, address] = await this.#evaluate<ResolveEvaluateResult>(
+      this.#config.rootResolverAddress,
+      `resolve("${name}", "addr")`
+    );
+
+    return address;
+  }
+
+  async whoIs(name: string): Promise<WhoIsResult> {
+    const [, [registrantAddress, resolverAddress, createdAt, expiresAt]] =
+      await this.#evaluate<WhoIsEvaluateResult>(
+        this.#config.rootRegistryAddress,
+        `whoIs("${name}")`
       );
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const {
-        result: {
-          value: {
-            _2: {
-              value: {
-                _1: { value: registrantAddress },
-                _2: { value: resolverAddress },
-                _3: { value: createdAt },
-                _4: { value: expiresAt },
-              },
-            },
-          },
-        },
-      } = data;
-
-      return {
-        registrantAddress: this.#checkEmptyUint(registrantAddress),
-        resolverAddress: this.#checkEmptyUint(resolverAddress),
-        createdAt: this.#checkEmptyUint(createdAt),
-        expiresAt: this.#checkEmptyUint(expiresAt),
-        status: this.#checkEmptyUint(registrantAddress)
-          ? 'REGISTERED'
-          : 'NOT_REGISTERED',
-      };
-    } catch (error) {
-      this.#logger(error);
-      throw error;
-    }
-  }
-
-  async available(name: string, domain: string): Promise<WhoIsData> {
-    try {
-      const data = await this.evaluateScript(`available("${name}${domain}")`);
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const {
-        result: {
-          value: {
-            _2: { value: isAvailable },
-          },
-        },
-      } = data;
-
-      return {
-        registrantAddress: '',
-        resolverAddress: '',
-        createdAt: '',
-        expiresAt: '',
-        status: this.#checkEmptyUint(isAvailable)
-          ? 'REGISTERED'
-          : 'NOT_REGISTERED',
-      };
-    } catch (error) {
-      this.#logger(error);
-      throw error;
-    }
+    return {
+      createdAt: createdAt == null ? null : Number(createdAt),
+      expiresAt: expiresAt == null ? null : Number(expiresAt),
+      registrantAddress,
+      resolverAddress,
+      status: registrantAddress
+        ? WhoIsStatus.Registered
+        : WhoIsStatus.NotRegistered,
+    };
   }
 }
-
-export default WavesNameService;

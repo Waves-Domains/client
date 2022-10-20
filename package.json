@@ -9,13 +9,19 @@
   ],
   "scripts": {
     "lint:prettier": "prettier . --check",
-    "lint:prettier:fix": "prettier . --write"
+    "lint:prettier:fix": "prettier . --write",
+    "lint:eslint": "eslint --max-warnings 0 .",
+    "lint:eslint:fix": "eslint --fix ."
   },
   "dependencies": {
     "@waves/ts-lib-crypto": "^1.4.4-beta.1",
     "long": "^5.2.0"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.40.1",
+    "@typescript-eslint/parser": "^5.40.1",
+    "eslint": "^8.25.0",
+    "eslint-config-prettier": "^8.5.0",
     "prettier": "^2.7.1",
     "typescript": "^4.8.3"
   }

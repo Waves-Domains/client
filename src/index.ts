@@ -32,7 +32,7 @@ export interface NameEntry {
   name: string;
 }
 
-type NumEntry = string | number | BigInt;
+type NumEntry = string | number | bigint;
 
 const INVOKE_TX_TYPE = 16;
 const INVOKE_FUNCTION_BID = 'bid';
@@ -102,7 +102,7 @@ export class WavesNameService {
 
   private isNaturalNumber(value: NumEntry) {
     const n = value.toString();
-    var n1 = Math.abs(+n),
+    const n1 = Math.abs(+n),
       n2 = parseInt(n, 10);
     return !isNaN(n1) && n2 === n1 && n1.toString() === n;
   }
@@ -307,7 +307,7 @@ export class WavesNameService {
   public async getBlockchainTimestamp() {
     try {
       const response = await fetch(`${this.config.HOST}/blocks/headers/last`);
-      let result = await response.json();
+      const result = await response.json();
       return result.timestamp;
     } catch (error) {
       console.error(error);
@@ -316,11 +316,11 @@ export class WavesNameService {
   }
 
   public getStatus(auctionId: number, blockchainTimestamp: number) {
-    let currentPeriodStart =
+    const currentPeriodStart =
       auctionId * (this.config.BID_DURATION + this.config.REVEAL_DURATION) +
       this.config.INIT_TIMESTAMP;
-    let currentAuctionTime = blockchainTimestamp - currentPeriodStart;
-    let period = currentAuctionTime > BID_DURATION ? 'reveal' : 'bid';
+    const currentAuctionTime = blockchainTimestamp - currentPeriodStart;
+    const period = currentAuctionTime > BID_DURATION ? 'reveal' : 'bid';
 
     return period;
   }

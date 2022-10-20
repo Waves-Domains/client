@@ -1,5 +1,5 @@
 {
-    "name": "@keeper-wallet/wns-js-library",
+    "name": "@waves-domains/client",
     "version": "1.0.0",
     "description": "WNS js library",
     "license": "MIT",

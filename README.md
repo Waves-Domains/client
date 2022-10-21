@@ -1,4 +1,4 @@
-# wns-js-library
+# @waves-domains/client
 
 ## Overview
 
@@ -19,7 +19,7 @@ Waves Domains is a naming service on the Waves blockchain.
 To install `wns-js-library`, use
 
 ```bash
-npm i @waves/wns-js-library
+npm i @waves-domains/client
 ```
 
 Add library initialization to your app.
@@ -27,7 +27,7 @@ Add library initialization to your app.
 For Mainnet:
 
 ```javascript
-import { WavesNameService } from '@keeper-wallet/wns-js-library';
+import { WavesNameService } from '@waves-domains/client';
 
 const wns = new WavesNameService({
   network: 'mainnet',
@@ -39,7 +39,7 @@ const wns = new WavesNameService({
 For Testnet:
 
 ```javascript
-import { WavesNameService } from '@keeper-wallet/wns-js-library';
+import { WavesNameService } from '@waves-domains/client';
 
 const wns = new WavesNameService();
 ```

@@ -72,8 +72,8 @@ console.log(whoIsResult);
 {
   createdAt: 10000000,
   expiresAt: 31546000000,
-  registrantAddress: '3NBKzyQx8pAvaR444dDKuJT397DAdXURPLQ',
-  resolverAddress: null,
+  owner: '3NBKzyQx8pAvaR444dDKuJT397DAdXURPLQ',
+  resolver: null,
   status: 'REGISTERED'
 }
 */

@@ -13,8 +13,8 @@ export enum WhoIsStatus {
 export interface WhoIsResult {
   createdAt: number | null;
   expiresAt: number | null;
-  registrantAddress: string | null;
-  resolverAddress: string | null;
+  owner: string | null;
+  resolver: string | null;
   status: WhoIsStatus;
 }
 
@@ -46,8 +46,8 @@ type ResolveEvaluateResult = [actions: [], address: string | null];
 type WhoIsEvaluateResult = [
   actions: [],
   returnValue: [
-    registrantAddress: string | null,
-    resolverAddress: string | null,
+    owner: string | null,
+    resolver: string | null,
     createdAt: string | null,
     expiresAt: string | null
   ]
@@ -96,7 +96,7 @@ export class WavesDomainsClient {
   }
 
   async whoIs(name: string): Promise<WhoIsResult> {
-    const [, [registrantAddress, resolverAddress, createdAt, expiresAt]] =
+    const [, [owner, resolver, createdAt, expiresAt]] =
       await this.#evaluate<WhoIsEvaluateResult>(
         this.#config.rootRegistryAddress,
         `whoIs("${name}")`
@@ -105,11 +105,9 @@ export class WavesDomainsClient {
     return {
       createdAt: createdAt == null ? null : Number(createdAt),
       expiresAt: expiresAt == null ? null : Number(expiresAt),
-      registrantAddress,
-      resolverAddress,
-      status: registrantAddress
-        ? WhoIsStatus.Registered
-        : WhoIsStatus.NotRegistered,
+      owner,
+      resolver,
+      status: owner ? WhoIsStatus.Registered : WhoIsStatus.NotRegistered,
     };
   }
 }

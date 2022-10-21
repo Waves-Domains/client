@@ -2,86 +2,92 @@
 
 ## Overview
 
-Waves Domains is a naming service on the Waves blockchain.
-
-`wns-js-library` is a JavaScript library for Waves Domains. The library features obtaining blockchain address for a certain domain name (lookup) as well as to auction for domains.
-
-⚠ The library is intended to work only in a browser, not on a server / in Node.js.
-
-`wns-js-library` provides find the following functions:
-
-- [lookup](#lookup)
-- [getCurrentAuctionId](#getcurrentauctionid)
-- [makeBidTx](#makebidtx)
+[Waves Domains](https://waves.domains/) is a naming service on the Waves
+blockchain, `@waves-domains/client` is a JavaScript library, which provides
+functions to interact with that service.
 
 ## Getting Started
 
-To install `wns-js-library`, use
+First, install it using npm:
 
-```bash
+```sh
 npm i @waves-domains/client
 ```
 
-Add library initialization to your app.
+or using yarn:
 
-For Mainnet:
-
-```javascript
-import { WavesNameService } from '@waves-domains/client';
-
-const wns = new WavesNameService({
-  network: 'mainnet',
-  // Specify the address of the root registrar of Waves Domains
-  CONTRACT_ADDRESS: '3P....',
-});
+```sh
+yarn add @waves-domains/client
 ```
 
-For Testnet:
+Next, create an instance of `WavesDomainsClient` for the network you're planning
+to work with:
+
+Mainnet:
 
 ```javascript
-import { WavesNameService } from '@waves-domains/client';
+import { WavesDomainsClient } from '@waves-domains/client';
 
-const wns = new WavesNameService();
+const client = new WavesDomainsClient();
 ```
 
-## Functions
-
-### lookup
-
-Returns the assigned blockchain address for a certain domain.
-
-Usage:
+Testnet:
 
 ```javascript
-const address = await wns.lookup('some-name.waves');
+import { WavesDomainsClient } from '@waves-domains/client';
+
+const client = new WavesDomainsClient({ network: 'testnet' });
 ```
 
-### getCurrentAuctionId
+## API
 
-Returns an ID and phase of currently active auction.
+`WavesDomainsClient` has the following methods:
 
-Usage:
+- [resolve](#resolve)
+- [whoIs](#whois)
+
+### resolve
+
+Returns the assigned blockchain address for a certain domain as a string, if it
+exists, otherwise it returns `null`:
 
 ```javascript
-const data = await wns.getAuction();
+const address = await client.resolve('test.waves');
 
-const { auctionId, phase, bidStart, revealStart, auctionEnd } = data;
+console.log(address);
+// 3NBKzyQx8pAvaR444dDKuJT397DAdXURPLQ
 ```
 
-### makeBidTx
+### whoIs
 
-Returns transaction object that can be sent to [Signer](https://docs.waves.tech/en/building-apps/waves-api-and-sdk/client-libraries/signer#create-transactions).
-
-Parameters:
-
-- `name: string` — desired name.
-- `amount: string|number| BigInt` — bid in WAVES.
-- `auctionId: number` — auction ID.
-
-The current auction ID can be obtained by the `getCurrentAuctionId()` function. Note that placing a bid is only allowed in the bid phase of the auction.
-
-Usage:
+Returns additional info about name:
 
 ```javascript
-const invokeTx = await wns.makeBidTx('some-name', 12.75, 127);
+const whoIsResult = await client.whoIs('test.waves');
+
+console.log(whoIsResult);
+/*
+{
+  createdAt: 10000000,
+  expiresAt: 31546000000,
+  registrantAddress: '3NBKzyQx8pAvaR444dDKuJT397DAdXURPLQ',
+  resolverAddress: null,
+  status: 'REGISTERED'
+}
+*/
+```
+
+`status` can be either `'REGISTERED'` or `'NOT_REGISTERED'`, you can also use
+`WhoIsStatus` enum to avoid typos:
+
+```javascript
+import { WhoIsStatus } from './dist/index.js';
+
+if (whoIsResult.status === WhoIsStatus.Registered) {
+  console.log('It is registered');
+}
+
+if (whoIsResult.status === WhoIsStatus.NotRegistered) {
+  console.log('It is not registered');
+}
 ```

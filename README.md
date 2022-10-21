@@ -3,7 +3,9 @@
 ## Overview
 
 [Waves Domains](https://waves.domains/) is a naming service on the Waves
-blockchain, `@waves-domains/client` is a JavaScript library, which provides
+blockchain.
+
+`@waves-domains/client` is a JavaScript library that provides
 functions to interact with that service.
 
 ## Getting Started

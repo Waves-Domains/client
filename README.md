@@ -81,7 +81,7 @@ console.log(whoIsResult);
 `WhoIsStatus` enum to avoid typos:
 
 ```javascript
-import { WhoIsStatus } from './dist/index.js';
+import { WhoIsStatus } from '@waves-domains/client';
 
 if (whoIsResult.status === WhoIsStatus.Registered) {
   console.log('It is registered');

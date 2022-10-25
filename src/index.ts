@@ -89,7 +89,7 @@ export class WavesDomainsClient {
   async resolve(name: string) {
     const [, address] = await this.#evaluate<ResolveEvaluateResult>(
       this.#config.rootResolverAddress,
-      `resolve("${name}", "addr")`
+      `resolve("${name}", "getAddr")`
     );
 
     return address;

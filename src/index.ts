@@ -27,8 +27,8 @@ interface NetworkConfig {
 const NETWORK_CONFIGS: Record<'mainnet' | 'testnet', NetworkConfig> = {
   mainnet: {
     nodeBaseUrl: 'https://nodes.wavesnodes.com',
-    rootRegistryAddress: '',
-    rootResolverAddress: '',
+    rootRegistryAddress: '3PGtKCi1tGCeoVdhEabxTawFYXNFMqpWkNT',
+    rootResolverAddress: '3P4p5XcmYbr4NMkKciD8NMATifdRTBZJ2M2',
   },
   testnet: {
     nodeBaseUrl: 'https://nodes-testnet.wavesnodes.com',

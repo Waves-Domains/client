@@ -89,7 +89,7 @@ export class WavesDomainsClient {
   async resolve(name: string) {
     const [, address] = await this.#evaluate<ResolveEvaluateResult>(
       this.#config.rootResolverAddress,
-      `resolve("${name}", "getAddr")`
+      `resolve(${JSON.stringify(name)}, "getAddr")`
     );
 
     return address;
@@ -99,7 +99,7 @@ export class WavesDomainsClient {
     const [, [owner, resolver, createdAt, expiresAt]] =
       await this.#evaluate<WhoIsEvaluateResult>(
         this.#config.rootRegistryAddress,
-        `whoIs("${name}")`
+        `whoIs(${JSON.stringify(name)})`
       );
 
     return {

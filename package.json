@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@waves-domains/client",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "waves.domains client library",
   "repository": "https://github.com/Waves-Domains/client",
   "module": "dist/index.js",

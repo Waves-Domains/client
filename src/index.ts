@@ -51,7 +51,7 @@ type WhoIsEvaluateResult = [
     resolver: string | null,
     createdAt: string | null,
     expiresAt: string | null,
-    tokenId: string | null,
+    tokenId: string | null
   ]
 ];
 

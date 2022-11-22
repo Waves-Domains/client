@@ -15,6 +15,7 @@ export interface WhoIsResult {
   expiresAt: number | null;
   owner: string | null;
   resolver: string | null;
+  tokenId: string | null;
   status: WhoIsStatus;
 }
 
@@ -49,7 +50,8 @@ type WhoIsEvaluateResult = [
     owner: string | null,
     resolver: string | null,
     createdAt: string | null,
-    expiresAt: string | null
+    expiresAt: string | null,
+    tokenId: string | null
   ]
 ];
 
@@ -96,7 +98,7 @@ export class WavesDomainsClient {
   }
 
   async whoIs(name: string): Promise<WhoIsResult> {
-    const [, [owner, resolver, createdAt, expiresAt]] =
+    const [, [owner, resolver, createdAt, expiresAt, tokenId]] =
       await this.#evaluate<WhoIsEvaluateResult>(
         this.#config.rootRegistryAddress,
         `whoIs(${JSON.stringify(name)})`
@@ -107,6 +109,7 @@ export class WavesDomainsClient {
       expiresAt: expiresAt == null ? null : Number(expiresAt),
       owner,
       resolver,
+      tokenId,
       status: owner ? WhoIsStatus.Registered : WhoIsStatus.NotRegistered,
     };
   }

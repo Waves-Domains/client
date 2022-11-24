@@ -22,19 +22,16 @@ export interface WhoIsResult {
 interface NetworkConfig {
   nodeBaseUrl: string;
   rootRegistryAddress: string;
-  rootResolverAddress: string;
 }
 
 const NETWORK_CONFIGS: Record<'mainnet' | 'testnet', NetworkConfig> = {
   mainnet: {
     nodeBaseUrl: 'https://nodes.wavesnodes.com',
     rootRegistryAddress: '3P24S1EVZadwzmfKSNWUZyLjjqp5DcHY4hE',
-    rootResolverAddress: '3P3T8XAcktnJ2QcBcZ2jcoDEtc2hiu1PSpJ',
   },
   testnet: {
     nodeBaseUrl: 'https://nodes-testnet.wavesnodes.com',
     rootRegistryAddress: '3MvCgypmBZFTRqL5HuRwCgS7maC7Fkv7pZY',
-    rootResolverAddress: '3MwsyDjSTFfcbxaGnwD9YLMMfXSu4K74HT9',
   },
 };
 
@@ -88,10 +85,18 @@ export class WavesDomainsClient {
     return extractSEItemValue(json.result) as Values;
   }
 
-  async resolve(name: string) {
+  async resolve(
+    name: string,
+    interfaceId:
+      | 'getOwner'
+      | 'getResolver'
+      | 'getNameCreated'
+      | 'getNameExpires'
+      | 'getNameToken' = 'getOwner'
+  ) {
     const [, address] = await this.#evaluate<ResolveEvaluateResult>(
-      this.#config.rootResolverAddress,
-      `resolve(${JSON.stringify(name)}, "getAddr")`
+      this.#config.rootRegistryAddress,
+      `resolve(${JSON.stringify(name)}, ${JSON.stringify(interfaceId)}, nil)`
     );
 
     return address;

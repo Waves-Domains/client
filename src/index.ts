@@ -39,7 +39,7 @@ export interface WavesDomainsClientConfig {
   network?: keyof typeof NETWORK_CONFIGS;
 }
 
-type ResolveEvaluateResult = [actions: [], address: string | null];
+type ResolveEvaluateResult = [actions: [], callbackData: string | null];
 
 type WhoIsEvaluateResult = [
   actions: [],
@@ -88,18 +88,18 @@ export class WavesDomainsClient {
   async resolve(
     name: string,
     interfaceId:
-      | 'getOwner'
-      | 'getResolver'
-      | 'getNameCreated'
-      | 'getNameExpires'
-      | 'getNameToken' = 'getOwner'
+      | 'owner'
+      | 'resolver'
+      | 'createdAt'
+      | 'expiresAt'
+      | 'tokenId' = 'owner'
   ) {
-    const [, address] = await this.#evaluate<ResolveEvaluateResult>(
+    const [, callbackData] = await this.#evaluate<ResolveEvaluateResult>(
       this.#config.rootRegistryAddress,
       `resolve(${JSON.stringify(name)}, ${JSON.stringify(interfaceId)}, nil)`
     );
 
-    return address;
+    return callbackData;
   }
 
   async whoIs(name: string): Promise<WhoIsResult> {

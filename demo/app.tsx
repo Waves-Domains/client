@@ -14,7 +14,7 @@ export function App() {
           event.preventDefault();
 
           const input = event.currentTarget.elements.namedItem(
-            'resolveNameInput'
+            'resolveNameInput',
           ) as HTMLInputElement;
 
           setResolveOutput(await wavesDomainsClient.resolve(input.value));
@@ -38,7 +38,7 @@ export function App() {
           event.preventDefault();
 
           const input = event.currentTarget.elements.namedItem(
-            'whoIsNameInput'
+            'whoIsNameInput',
           ) as HTMLInputElement;
 
           setWhoIsOutput(await wavesDomainsClient.whoIs(input.value));

@@ -48,8 +48,8 @@ type WhoIsEvaluateResult = [
     resolver: string | null,
     createdAt: string | null,
     expiresAt: string | null,
-    tokenId: string | null
-  ]
+    tokenId: string | null,
+  ],
 ];
 
 export class WavesDomainsClient {
@@ -69,7 +69,7 @@ export class WavesDomainsClient {
           'content-type': 'application/json',
         },
         body: JSON.stringify({ expr: expression }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -92,11 +92,11 @@ export class WavesDomainsClient {
       | 'resolver'
       | 'createdAt'
       | 'expiresAt'
-      | 'tokenId' = 'owner'
+      | 'tokenId' = 'owner',
   ) {
     const [, callbackData] = await this.#evaluate<ResolveEvaluateResult>(
       this.#config.rootRegistryAddress,
-      `resolve(${JSON.stringify(name)}, ${JSON.stringify(interfaceId)}, nil)`
+      `resolve(${JSON.stringify(name)}, ${JSON.stringify(interfaceId)}, nil)`,
     );
 
     return callbackData;
@@ -106,7 +106,7 @@ export class WavesDomainsClient {
     const [, [owner, resolver, createdAt, expiresAt, tokenId]] =
       await this.#evaluate<WhoIsEvaluateResult>(
         this.#config.rootRegistryAddress,
-        `whoIs(${JSON.stringify(name)})`
+        `whoIs(${JSON.stringify(name)})`,
       );
 
     return {
